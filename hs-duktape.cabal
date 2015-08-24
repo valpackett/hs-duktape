@@ -1,0 +1,69 @@
+name:            hs-duktape
+version:         0.1.0
+synopsis:        A very compact embedded JavaScript engine.
+category:        Web
+homepage:        https://github.com/myfreeweb/hs-duktape
+author:          Greg V
+copyright:       2015 Greg V <greg@unrelenting.technology>, 2013-2015 Duktape authors
+maintainer:      greg@unrelenting.technology
+license:         MIT
+license-file:    LICENSE
+build-type:      Simple
+cabal-version:   >= 1.10
+extra-source-files:
+    README.md
+    duktape/src/duktape.c
+    duktape/src/duktape.h
+tested-with:
+    GHC == 7.10.2
+
+source-repository head
+    type: git
+    location: git://github.com/myfreeweb/hs-duktape.git
+
+library
+    build-depends:
+        base >= 4.3.0.0 && < 5
+      , transformers
+      , text
+      , bytestring
+      , time
+      , either
+      , safe
+      , containers
+      , unordered-containers
+      , vector
+      , aeson
+    default-language: Haskell2010
+    exposed-modules:
+        Scripting.Duktape
+        Scripting.Duktape.Raw
+    ghc-options: -Wall
+    hs-source-dirs: library
+    include-dirs: duktape/src
+    c-sources: duktape/src/duktape.c
+    includes: duktape.h
+    install-includes: duktape.h
+    cc-options: -Wall -O2 -pedantic -std=c99 -fstrict-aliasing -fomit-frame-pointer
+
+test-suite tests
+    build-depends:
+        base >= 4.3.0.0 && < 5
+      , mtl
+      , time
+      , text
+      , bytestring
+      , hspec
+      , hspec-expectations-pretty-diff
+      , aeson
+      , aeson-qq
+      , template-haskell
+      , hs-duktape
+    default-language: Haskell2010
+    ghc-options: -threaded -Wall -fhpc
+    hs-source-dirs: test-suite
+    main-is: Spec.hs
+    other-modules:
+        TestCommon
+        Scripting.DuktapeSpec
+    type: exitcode-stdio-1.0

@@ -1,0 +1,105 @@
+{-# LANGUAGE OverloadedStrings, UnicodeSyntax, CPP #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
+
+module Scripting.Duktape.Raw where
+
+import           Foreign.C.Types
+import           Foreign.C.String
+import           Foreign.Ptr
+import           Foreign.ForeignPtr
+import           Data.Bits
+
+data DuktapeHeap
+
+type DuktapeCtx = ForeignPtr DuktapeHeap
+
+type DukAllocFunction = Ptr () → CSize → IO (Ptr ())
+type DukReallocFunction = Ptr () → Ptr () → CSize → IO (Ptr ())
+type DukFreeFunction = Ptr () → Ptr () → IO ()
+type DukFatalFunction = Ptr DuktapeHeap → CInt → CString → IO ()
+
+-- Heap lifecycle
+
+foreign import ccall safe "duktape.h duk_create_heap"
+  c_duk_create_heap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → Ptr () → FunPtr DukFatalFunction → IO (Ptr DuktapeHeap)
+
+foreign import ccall safe "duktape.h &duk_destroy_heap"
+  c_duk_destroy_heap ∷ FunPtr(Ptr DuktapeHeap → IO ())
+
+-- Evaluation
+
+#define DUK_COMPILE_EVAL                  (1 `shiftL` 0)
+#define DUK_COMPILE_FUNCTION              (1 `shiftL` 1)
+#define DUK_COMPILE_STRICT                (1 `shiftL` 2)
+#define DUK_COMPILE_SAFE                  (1 `shiftL` 3)
+#define DUK_COMPILE_NORESULT              (1 `shiftL` 4)
+#define DUK_COMPILE_NOSOURCE              (1 `shiftL` 5)
+#define DUK_COMPILE_STRLEN                (1 `shiftL` 6)
+
+foreign import ccall safe "duktape.h duk_eval_raw"
+  c_duk_eval_raw ∷ Ptr DuktapeHeap → CString → CSize → CUInt → IO CInt
+
+c_duk_peval_lstring ∷ Ptr DuktapeHeap → CString → CSize → IO CInt
+c_duk_peval_lstring ptr src srclen = do
+  withCString "hs-duktape" $ \fileStr →
+    c_duk_push_string ptr fileStr
+  c_duk_eval_raw ptr src srclen $ DUK_COMPILE_EVAL .|. DUK_COMPILE_NOSOURCE .|. DUK_COMPILE_SAFE
+
+-- Managing the stack
+
+foreign import ccall safe "duktape.h duk_pop"
+  c_duk_pop ∷ Ptr DuktapeHeap → IO ()
+
+-- Pushing to the stack
+
+foreign import ccall safe "duktape.h duk_push_string"
+  c_duk_push_string ∷ Ptr DuktapeHeap → CString → IO ()
+
+-- Fetching from the stack
+
+foreign import ccall safe "duktape.h duk_safe_to_lstring"
+  c_duk_safe_to_lstring ∷ Ptr DuktapeHeap → CInt → Ptr CSize → IO CString
+
+c_duk_safe_to_string ∷ Ptr DuktapeHeap → CInt → IO CString
+c_duk_safe_to_string ctx idx = c_duk_safe_to_lstring ctx idx nullPtr
+
+foreign import ccall safe "duktape.h duk_get_string"
+  c_duk_get_string ∷ Ptr DuktapeHeap → CInt → IO CString
+
+foreign import ccall safe "duktape.h duk_get_lstring"
+  c_duk_get_lstring ∷ Ptr DuktapeHeap → CInt → Ptr CSize → IO CString
+
+foreign import ccall safe "duktape.h duk_get_int"
+  c_duk_get_int ∷ Ptr DuktapeHeap → CInt → IO CInt
+
+foreign import ccall safe "duktape.h duk_get_uint"
+  c_duk_get_uint ∷ Ptr DuktapeHeap → CInt → IO CUInt
+
+foreign import ccall safe "duktape.h duk_get_number"
+  c_duk_get_number ∷ Ptr DuktapeHeap → CInt → IO CDouble
+
+foreign import ccall safe "duktape.h duk_get_boolean"
+  c_duk_get_boolean ∷ Ptr DuktapeHeap → CInt → IO CInt
+
+foreign import ccall safe "duktape.h duk_get_type"
+  c_duk_get_type ∷ Ptr DuktapeHeap → CInt → IO CInt
+
+-- Encoding/decoding
+
+foreign import ccall safe "duktape.h duk_json_encode"
+  c_duk_json_encode ∷ Ptr DuktapeHeap → CInt → IO CString
+
+foreign import ccall safe "duktape.h duk_json_decode"
+  c_duk_json_decode ∷ Ptr DuktapeHeap → CInt → IO ()
+
+-------------------------------------------------------------------------------------------------------
+
+createHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → Ptr () → FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
+createHeap allocf reallocf freef udata fatalf = do
+  ptr ← c_duk_create_heap allocf reallocf freef udata fatalf
+  if ptr /= nullPtr
+     then newForeignPtr c_duk_destroy_heap ptr >>= return . Just
+     else return Nothing
+
+createHeapF ∷ FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
+createHeapF = createHeap nullFunPtr nullFunPtr nullFunPtr nullPtr
