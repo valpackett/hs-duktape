@@ -28,6 +28,5 @@ spec = do
       rS `shouldBe` (Right $ Just $ String "string")
       rA ← evalDuktape (fromJust ctx) "[1,2,'string',{what:'ever'}]"
       rA `shouldBe` (Right $ Just [json|[1,2,"string",{"what":"ever"}]|])
-      rO ← evalDuktape (fromJust ctx) "(function () { return {what: ['ever', 1, 2, 3]} })()"
-      -- WTF: top level {what: ['ever', 1, 2, 3]} is serialized to JSON by duktape as just ['ever', 1, 2, 3]
+      rO ← evalDuktape (fromJust ctx) "({what: ['ever', 1, 2, 3]})"
       rO `shouldBe` (Right $ Just [json|{"what":["ever", 1, 2, 3]}|])
