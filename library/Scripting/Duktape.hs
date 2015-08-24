@@ -13,6 +13,7 @@ import           Foreign.Storable
 import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
+import           Control.Monad.IO.Class
 import           Data.Text.Encoding (decodeUtf8)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
@@ -74,12 +75,12 @@ getValueFromStack ctx idx = withForeignPtr ctx $ \ctxPtr → do
     DukObject → c_duk_json_encode ctxPtr cIdx >> getStringFromStack ctx idx >>= return . decode . BL.fromStrict
     _ → return Nothing
 
-createDuktapeCtx ∷ IO (Maybe DuktapeCtx)
-createDuktapeCtx = createHeapF nullFunPtr
+createDuktapeCtx ∷ MonadIO μ ⇒ μ (Maybe DuktapeCtx)
+createDuktapeCtx = liftIO $ createHeapF nullFunPtr
 
-evalDuktape ∷ DuktapeCtx → BS.ByteString → IO (Either String (Maybe Value))
+evalDuktape ∷ MonadIO μ ⇒ DuktapeCtx → BS.ByteString → μ (Either String (Maybe Value))
 evalDuktape ctx src =
-  withForeignPtr ctx $ \ctxPtr →
+  liftIO $ withForeignPtr ctx $ \ctxPtr →
     BS.useAsCStringLen src $ \(srcCstr, srcLen) → do
       evalCode ← c_duk_peval_lstring ctxPtr srcCstr $ fromIntegral srcLen
       retVal ← if evalCode /= fromIntegral 0
