@@ -32,17 +32,6 @@ import           Data.Aeson
 import           Data.Maybe (fromMaybe)
 import           Scripting.Duktape.Raw
 
-#define DUK_TYPE_NONE                     0
-#define DUK_TYPE_UNDEFINED                1
-#define DUK_TYPE_NULL                     2
-#define DUK_TYPE_BOOLEAN                  3
-#define DUK_TYPE_NUMBER                   4
-#define DUK_TYPE_STRING                   5
-#define DUK_TYPE_OBJECT                   6
-#define DUK_TYPE_BUFFER                   7
-#define DUK_TYPE_POINTER                  8
-#define DUK_TYPE_LIGHTFUNC                9
-
 cMinusOne ∷ CInt
 cMinusOne = fromIntegral $ -1
 
@@ -52,20 +41,18 @@ withCtx ∷ DuktapeCtx → (Ptr DuktapeHeap → IO α) → IO α
 withCtx ctx a = withMVar ctx $ \fPtr → withForeignPtr fPtr a
 
 getTypeOnStack ∷ Ptr DuktapeHeap → Int → IO DukType
-getTypeOnStack ctxPtr idx = do
-  t ← c_duk_get_type ctxPtr $ fromIntegral idx
-  return $ case t of
-    DUK_TYPE_NONE      → DukNone
-    DUK_TYPE_UNDEFINED → DukUndefined
-    DUK_TYPE_NULL      → DukNull
-    DUK_TYPE_BOOLEAN   → DukBoolean
-    DUK_TYPE_NUMBER    → DukNumber
-    DUK_TYPE_STRING    → DukString
-    DUK_TYPE_OBJECT    → DukObject
-    DUK_TYPE_BUFFER    → DukBuffer
-    DUK_TYPE_POINTER   → DukPointer
-    DUK_TYPE_LIGHTFUNC → DukLightFunc
-    _                  → DukNone
+getTypeOnStack ctxPtr idx = liftM readType $ c_duk_get_type ctxPtr $ fromIntegral idx
+  where readType x | x == c_DUK_TYPE_NONE      = DukNone
+                   | x == c_DUK_TYPE_UNDEFINED = DukUndefined
+                   | x == c_DUK_TYPE_NULL      = DukNull
+                   | x == c_DUK_TYPE_BOOLEAN   = DukBoolean
+                   | x == c_DUK_TYPE_NUMBER    = DukNumber
+                   | x == c_DUK_TYPE_STRING    = DukString
+                   | x == c_DUK_TYPE_OBJECT    = DukObject
+                   | x == c_DUK_TYPE_BUFFER    = DukBuffer
+                   | x == c_DUK_TYPE_POINTER   = DukPointer
+                   | x == c_DUK_TYPE_LIGHTFUNC = DukLightFunc
+                   | otherwise                 = DukNone
 
 getStringFromStack ∷ Ptr DuktapeHeap → Int → IO BS.ByteString
 getStringFromStack ctxPtr idx = alloca $ \lenPtr → do

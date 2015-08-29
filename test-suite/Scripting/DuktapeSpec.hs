@@ -8,7 +8,6 @@ import           TestCommon
 import           Data.Maybe
 import           Data.Aeson hiding (json)
 import           Scripting.Duktape
-import           Debug.Trace
 
 spec ∷ Spec
 spec = do
