@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE OverloadedStrings, UnicodeSyntax, CPP #-}
+{-# LANGUAGE OverloadedStrings, UnicodeSyntax, CPP, FlexibleInstances #-}
 
 -- | Haskell bindings for duktape, a very compact embedded ECMAScript (JavaScript) engine.
 -- 
@@ -10,6 +10,8 @@ module Scripting.Duktape (
 , createDuktapeCtx
 , evalDuktape
 , callDuktape
+, exposeFnDuktape
+, Duktapeable
 ) where
 
 import           Foreign.Ptr
@@ -20,13 +22,14 @@ import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
 import           Control.Monad.IO.Class
 import           Control.Concurrent.MVar (withMVar)
-import           Control.Monad (void, forM_)
+import           Control.Monad (void, forM_, liftM)
 import           Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HMS
 import           Data.Aeson
+import           Data.Maybe (fromMaybe)
 import           Scripting.Duktape.Raw
 
 #define DUK_TYPE_NONE                     0
@@ -111,6 +114,10 @@ pushValue ctxPtr (Object m) = do
     BS.useAsCString (encodeUtf8 k) $ \kCstr →
       pushValue ctxPtr x >> c_duk_put_prop_string ctxPtr idx kCstr
 
+pushObjectOrGlobal ∷ Ptr DuktapeHeap → Maybe BS.ByteString → IO Bool
+pushObjectOrGlobal ctxPtr (Just on) = liftM (/= 0) $ BS.useAsCString on $ \onameCstr → c_duk_get_global_string ctxPtr onameCstr
+pushObjectOrGlobal ctxPtr Nothing   = c_duk_push_global_object ctxPtr >> return True
+
 -- | Creates a Duktape context.
 createDuktapeCtx ∷ MonadIO μ ⇒ μ (Maybe DuktapeCtx)
 createDuktapeCtx = liftIO $ createHeapF nullFunPtr
@@ -134,10 +141,81 @@ callDuktape ∷ MonadIO μ ⇒ DuktapeCtx
 callDuktape ctx oname fname args =
   liftIO $ withCtx ctx $ \ctxPtr →
     BS.useAsCStringLen fname $ \(fnameCstr, fnameLen) → do
-      case oname of
-        Just on → void $ BS.useAsCString on $ \onameCstr →
-          c_duk_get_global_string ctxPtr onameCstr
-        Nothing → c_duk_push_global_object ctxPtr
-      void $ c_duk_push_lstring ctxPtr fnameCstr $ fromIntegral fnameLen
-      forM_ args $ pushValue ctxPtr
-      pop ctxPtr =<< pop ctxPtr =<< getValueOrError ctxPtr =<< c_duk_pcall_prop ctxPtr (fromIntegral $ -2 - length args) (fromIntegral $ length args)
+      oVal ← pushObjectOrGlobal ctxPtr oname
+      if oVal
+         then do
+           void $ c_duk_push_lstring ctxPtr fnameCstr $ fromIntegral fnameLen
+           forM_ args $ pushValue ctxPtr
+           pop ctxPtr =<< pop ctxPtr =<< getValueOrError ctxPtr =<< c_duk_pcall_prop ctxPtr (fromIntegral $ -2 - length args) (fromIntegral $ length args)
+         else pop ctxPtr $ Left $ "Nonexistent property of global object: " ++ show (fromMaybe "" oname)
+
+class Duktapeable ξ where
+  runInDuktape ∷ ξ → Ptr DuktapeHeap → IO CInt
+  argCount ∷ ξ → Int
+
+instance Duktapeable (IO ()) where
+  runInDuktape f _ = f >> return 0
+  argCount _ = 0
+
+instance Duktapeable (IO Value) where
+  argCount _ = 0
+  runInDuktape f ctxPtr = f >>= pushValue ctxPtr >> return 1
+
+instance Duktapeable (Value → IO Value) where
+  argCount _ = 1
+  runInDuktape f ctxPtr = do
+    a0 ← getValueFromStack ctxPtr 0
+    f (fromMaybe Null a0) >>= pushValue ctxPtr >> return 1
+
+instance Duktapeable (Value → Value → IO Value) where
+  argCount _ = 2
+  runInDuktape f ctxPtr = do
+    a0 ← getValueFromStack ctxPtr 0
+    a1 ← getValueFromStack ctxPtr 1
+    f (fromMaybe Null a0) (fromMaybe Null a1) >>= pushValue ctxPtr >> return 1
+
+instance Duktapeable (Value → Value → Value → IO Value) where
+  argCount _ = 3
+  runInDuktape f ctxPtr = do
+    a0 ← getValueFromStack ctxPtr 0
+    a1 ← getValueFromStack ctxPtr 1
+    a2 ← getValueFromStack ctxPtr 2
+    f (fromMaybe Null a0) (fromMaybe Null a1) (fromMaybe Null a2) >>= pushValue ctxPtr >> return 1
+
+instance Duktapeable (Value → Value → Value → Value → IO Value) where
+  argCount _ = 4
+  runInDuktape f ctxPtr = do
+    a0 ← getValueFromStack ctxPtr 0
+    a1 ← getValueFromStack ctxPtr 1
+    a2 ← getValueFromStack ctxPtr 2
+    a3 ← getValueFromStack ctxPtr 3
+    f (fromMaybe Null a0) (fromMaybe Null a1) (fromMaybe Null a2) (fromMaybe Null a3) >>= pushValue ctxPtr >> return 1
+
+instance Duktapeable (Value → Value → Value → Value → Value → IO Value) where
+  argCount _ = 5
+  runInDuktape f ctxPtr = do
+    a0 ← getValueFromStack ctxPtr 0
+    a1 ← getValueFromStack ctxPtr 1
+    a2 ← getValueFromStack ctxPtr 2
+    a3 ← getValueFromStack ctxPtr 3
+    a4 ← getValueFromStack ctxPtr 4
+    f (fromMaybe Null a0) (fromMaybe Null a1) (fromMaybe Null a2) (fromMaybe Null a3) (fromMaybe Null a4) >>= pushValue ctxPtr >> return 1
+
+-- | Makes a Haskell function available in ECMAScript.
+exposeFnDuktape ∷ (MonadIO μ, Duktapeable ξ)
+                ⇒ DuktapeCtx
+                → Maybe BS.ByteString -- ^ The name of the object that will contain the function (Nothing is the global object)
+                → BS.ByteString -- ^ The function name
+                → ξ -- ^ The function itself
+                → μ (Either String ())
+exposeFnDuktape ctx oname fname f =
+  liftIO $ withCtx ctx $ \ctxPtr →
+    BS.useAsCString fname $ \fnameCstr → do
+      oVal ← pushObjectOrGlobal ctxPtr oname
+      if oVal
+         then do
+           wrapped ← c_wrapper $ runInDuktape f
+           void $ c_duk_push_c_function ctxPtr wrapped $ fromIntegral $ argCount f
+           void $ c_duk_put_prop_string ctxPtr (-2) fnameCstr
+           pop ctxPtr $ Right ()
+         else pop ctxPtr $ Left $ "Nonexistent property of global object: " ++ show oname

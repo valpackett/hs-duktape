@@ -34,6 +34,26 @@ main = do
 [Aeson]'s `Value` type is used for exchanging values between Haskell and ECMAScript.  
 [lens-aeson] is a good library for working with `Value`, um, values.
 
+You can also call functions that are on the global object (or any object that's on the global object):
+
+```haskell
+dukm <- createDuktapeCtx
+bresult <- callDuktape (fromJust dukm) Nothing "boolTest" [Bool True, Bool True, Bool False] -- boolTest(true, true, false)
+aresult <- callDuktape (fromJust dukm) (Just "NumFuns") "sum" [Number 1, Number 2] -- NumFuns.sum(1, 2)
+```
+
+And expose Haskell functions (same as with calls: set on global or a property of global):
+
+```haskell
+dukm <- createDuktapeCtx
+let dbl (Number x) = return $ Number $ x * 2 ∷ IO Value
+    dbl _ = return $ String "wtf"
+reD ← exposeFnDuktape (fromJust ctx) Nothing "double" dbl 
+```
+
+The functions must be of type `IO ()`, `IO Value`, `Value -> IO Value`, `Value -> Value -> IO Value`... and so on, up to 5 arguments.
+If you need more, use an `Object` `Value`, seriously.
+
 [Aeson]: https://hackage.haskell.org/package/aeson
 [lens-aeson]: https://hackage.haskell.org/package/lens-aeson
 

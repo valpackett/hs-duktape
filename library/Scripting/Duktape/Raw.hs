@@ -20,6 +20,9 @@ type DukReallocFunction = Ptr () → Ptr () → CSize → IO (Ptr ())
 type DukFreeFunction = Ptr () → Ptr () → IO ()
 type DukFatalFunction = Ptr DuktapeHeap → CInt → CString → IO ()
 
+foreign import ccall "wrapper"
+  c_wrapper ∷ (Ptr DuktapeHeap → IO CInt) → IO (FunPtr (Ptr DuktapeHeap → IO CInt))
+
 -- Heap lifecycle
 
 foreign import ccall safe "duktape.h duk_create_heap"
@@ -85,6 +88,9 @@ foreign import ccall safe "duktape.h duk_push_array"
 
 foreign import ccall safe "duktape.h duk_push_object"
   c_duk_push_object ∷ Ptr DuktapeHeap → IO CInt
+
+foreign import ccall safe "duktape.h duk_push_c_function"
+  c_duk_push_c_function ∷ Ptr DuktapeHeap → FunPtr (Ptr DuktapeHeap → IO CInt) → CInt → IO CInt
 
 foreign import ccall safe "duktape.h duk_push_global_object"
   c_duk_push_global_object ∷ Ptr DuktapeHeap → IO ()
