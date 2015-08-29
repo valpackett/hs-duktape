@@ -1,0 +1,3 @@
+:set -itest-suite/ -package hspec
+:def test   \_ -> return $ ":load test-suite/Spec.hs\n:reload\n:main --color"
+:def retest \_ -> return $ ":load test-suite/Spec.hs\n:reload\n:main --color --rerun"

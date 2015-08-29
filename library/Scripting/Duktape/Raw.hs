@@ -7,11 +7,12 @@ import           Foreign.C.Types
 import           Foreign.C.String
 import           Foreign.Ptr
 import           Foreign.ForeignPtr
+import           Control.Concurrent.MVar (newMVar, MVar)
 import           Data.Bits
 
 data DuktapeHeap
 
-type DuktapeCtx = ForeignPtr DuktapeHeap
+type DuktapeCtx = MVar (ForeignPtr DuktapeHeap)
 
 type DukAllocFunction = Ptr () → CSize → IO (Ptr ())
 type DukReallocFunction = Ptr () → Ptr () → CSize → IO (Ptr ())
@@ -98,7 +99,7 @@ createHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr 
 createHeap allocf reallocf freef udata fatalf = do
   ptr ← c_duk_create_heap allocf reallocf freef udata fatalf
   if ptr /= nullPtr
-     then newForeignPtr c_duk_destroy_heap ptr >>= return . Just
+     then newForeignPtr c_duk_destroy_heap ptr >>= newMVar >>= return . Just
      else return Nothing
 
 createHeapF ∷ FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
