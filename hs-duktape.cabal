@@ -25,6 +25,8 @@ library
     build-depends:
         base >= 4.3.0.0 && < 5
       , transformers
+      , vector
+      , unordered-containers
       , text
       , bytestring
       , aeson
@@ -49,6 +51,7 @@ test-suite tests
       , hspec-expectations-pretty-diff
       , aeson
       , aeson-qq
+      , raw-strings-qq
       , template-haskell
       , hs-duktape
     default-language: Haskell2010

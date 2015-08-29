@@ -8,6 +8,7 @@ import           Foreign.C.String
 import           Foreign.Ptr
 import           Foreign.ForeignPtr
 import           Control.Concurrent.MVar (newMVar, MVar)
+import           Control.Monad (void)
 import           Data.Bits
 
 data DuktapeHeap
@@ -42,19 +43,54 @@ foreign import ccall safe "duktape.h duk_eval_raw"
 
 c_duk_peval_lstring ∷ Ptr DuktapeHeap → CString → CSize → IO CInt
 c_duk_peval_lstring ptr src srclen = do
-  withCString "hs-duktape" $ \fileStr →
+  void $ withCString "hs-duktape" $ \fileStr →
     c_duk_push_string ptr fileStr
   c_duk_eval_raw ptr src srclen $ DUK_COMPILE_EVAL .|. DUK_COMPILE_NOSOURCE .|. DUK_COMPILE_SAFE
+
+foreign import ccall safe "duktape.h duk_pcall_prop"
+  c_duk_pcall_prop ∷ Ptr DuktapeHeap → CInt → CInt → IO CInt
 
 -- Managing the stack
 
 foreign import ccall safe "duktape.h duk_pop"
   c_duk_pop ∷ Ptr DuktapeHeap → IO ()
 
+-- Properties
+
+foreign import ccall safe "duktape.h duk_put_prop_index"
+  c_duk_put_prop_index ∷ Ptr DuktapeHeap → CInt → CInt → IO CInt
+
+foreign import ccall safe "duktape.h duk_put_prop_string"
+  c_duk_put_prop_string ∷ Ptr DuktapeHeap → CInt → CString → IO CInt
+
 -- Pushing to the stack
 
 foreign import ccall safe "duktape.h duk_push_string"
-  c_duk_push_string ∷ Ptr DuktapeHeap → CString → IO ()
+  c_duk_push_string ∷ Ptr DuktapeHeap → CString → IO CString
+
+foreign import ccall safe "duktape.h duk_push_lstring"
+  c_duk_push_lstring ∷ Ptr DuktapeHeap → CString → CSize → IO CString
+
+foreign import ccall safe "duktape.h duk_push_number"
+  c_duk_push_number ∷ Ptr DuktapeHeap → CDouble → IO ()
+
+foreign import ccall safe "duktape.h duk_push_boolean"
+  c_duk_push_boolean ∷ Ptr DuktapeHeap → CInt → IO ()
+
+foreign import ccall safe "duktape.h duk_push_null"
+  c_duk_push_null ∷ Ptr DuktapeHeap → IO ()
+
+foreign import ccall safe "duktape.h duk_push_array"
+  c_duk_push_array ∷ Ptr DuktapeHeap → IO CInt
+
+foreign import ccall safe "duktape.h duk_push_object"
+  c_duk_push_object ∷ Ptr DuktapeHeap → IO CInt
+
+foreign import ccall safe "duktape.h duk_push_global_object"
+  c_duk_push_global_object ∷ Ptr DuktapeHeap → IO ()
+
+foreign import ccall safe "duktape.h duk_get_global_string"
+  c_duk_get_global_string ∷ Ptr DuktapeHeap → CString → IO CInt
 
 -- Fetching from the stack
 
@@ -92,6 +128,11 @@ foreign import ccall safe "duktape.h duk_json_encode"
 
 foreign import ccall safe "duktape.h duk_json_decode"
   c_duk_json_decode ∷ Ptr DuktapeHeap → CInt → IO ()
+
+-- Debugging
+
+foreign import ccall safe "duktape.h duk_push_context_dump"
+  c_duk_push_context_dump ∷ Ptr DuktapeHeap → IO ()
 
 -------------------------------------------------------------------------------------------------------
 
