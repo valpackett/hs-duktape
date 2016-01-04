@@ -1,6 +1,6 @@
 flags: {}
 packages:
   - '.'
-resolver: lts-3.10
+resolver: lts-3.20
 extra-deps:
-  - hspec-expectations-pretty-diff-0.7.2.2
+  - hspec-expectations-pretty-diff-0.7.2.3
