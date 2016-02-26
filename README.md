@@ -72,14 +72,13 @@ $ stack test && rm tests.tix
 ## Contributing
 
 Please feel free to submit pull requests!
-Bugfixes and simple non-breaking improvements will be accepted without any questions :-)
 
-By participating in this project you agree to follow the [Contributor Code of Conduct](http://contributor-covenant.org/version/1/2/0/).
+By participating in this project you agree to follow the [Contributor Code of Conduct](http://contributor-covenant.org/version/1/4/).
 
 [The list of contributors is available on GitHub](https://github.com/myfreeweb/hs-duktape/graphs/contributors).
 
 ## License
 
 Licensed under the MIT license (see to the `LICENSE` file).  
-Haskell bindings: Copyright (c) 2015 Greg V <greg@unrelenting.technology>  
-Duktape: Copyright (c) 2013-2015 by Duktape authors (see duktape/AUTHORS.rst)
+Haskell bindings: Copyright (c) 2015-2016 Greg V <greg@unrelenting.technology>  
+Duktape: Copyright (c) 2013-2016 by Duktape authors (see duktape/AUTHORS.rst)
