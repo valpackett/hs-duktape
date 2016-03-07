@@ -24,6 +24,7 @@ import           Control.Monad.IO.Class
 import           Control.Concurrent.MVar (withMVar)
 import           Control.Monad (void, forM_, liftM)
 import           Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import qualified Data.Text.Foreign as TF
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
@@ -89,7 +90,7 @@ pushValue ctxPtr Null = c_duk_push_null ctxPtr
 pushValue ctxPtr (Bool True) = c_duk_push_boolean ctxPtr 1
 pushValue ctxPtr (Bool False) = c_duk_push_boolean ctxPtr 0
 pushValue ctxPtr (Number n) = c_duk_push_number ctxPtr $ realToFrac n
-pushValue ctxPtr (String s) = void $ BS.useAsCStringLen (encodeUtf8 s) $ \(sCstr, sLen) →
+pushValue ctxPtr (String s) = void $ TF.withCStringLen s $ \(sCstr, sLen) →
                                 c_duk_push_lstring ctxPtr sCstr $ fromIntegral sLen
 pushValue ctxPtr (Array v) = do
   idx ← c_duk_push_array ctxPtr
