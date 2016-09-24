@@ -17,7 +17,7 @@ spec = do
       r0 ← evalDuktape (fromJust ctx) ""
       r0 `shouldBe` Right Nothing
       rE ← evalDuktape (fromJust ctx) "print('hello"
-      rE `shouldBe` Left "SyntaxError: eof or line terminator while parsing string literal (line 1)"
+      rE `shouldBe` Left "SyntaxError: eof or line terminator in string literal (line 1)"
       rT ← evalDuktape (fromJust ctx) "1 == 1"
       rT `shouldBe` (Right $ Just $ Bool True)
       rF ← evalDuktape (fromJust ctx) "1 == 2"
