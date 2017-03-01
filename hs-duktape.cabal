@@ -4,7 +4,7 @@ synopsis:        Haskell bindings for a very compact embedded ECMAScript (JavaSc
 category:        Web
 homepage:        https://github.com/myfreeweb/hs-duktape
 author:          Greg V
-copyright:       2015-2016 Greg V <greg@unrelenting.technology>, 2013-2016 Duktape authors
+copyright:       2015-2017 Greg V <greg@unrelenting.technology> / 2013-2017 Duktape authors (for Duktape)
 maintainer:      greg@unrelenting.technology
 license:         MIT
 license-file:    LICENSE
@@ -15,7 +15,7 @@ extra-source-files:
     duktape/src/duktape.c
     duktape/src/duktape.h
 tested-with:
-    GHC == 8.0.1
+    GHC == 8.0.2
 
 source-repository head
     type: git
@@ -40,7 +40,7 @@ library
     c-sources: duktape/src/duktape.c
     includes: duktape.h
     install-includes: duktape.h
-    cc-options: -Wall -pedantic -std=c99 -fstrict-aliasing -fomit-frame-pointer
+    cc-options: -Wall -Wno-discarded-qualifiers -std=c99 -fstrict-aliasing -fomit-frame-pointer
 
 test-suite tests
     build-depends:
