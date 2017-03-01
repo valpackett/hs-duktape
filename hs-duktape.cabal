@@ -1,5 +1,5 @@
 name:            hs-duktape
-version:         0.1.3
+version:         0.1.4
 synopsis:        Haskell bindings for a very compact embedded ECMAScript (JavaScript) engine.
 category:        Web
 homepage:        https://github.com/myfreeweb/hs-duktape
