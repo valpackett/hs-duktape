@@ -39,7 +39,7 @@ function returnsObj () { return {hello: {from: [1, 2, 3]}} }
 function throwsErr () { throw new Error('hi') }
 |]
       rE ← callDuktape (fromJust ctx) Nothing "n0thing!" []
-      rE `shouldBe` (Left "TypeError: undefined not callable")
+      rE `shouldBe` (Left "TypeError: undefined not callable (property 'n0thing!' of [object global])")
       rO ← callDuktape (fromJust ctx) Nothing "returnsObj" []
       rO `shouldBe` (Right $ Just [json|{"hello": {"from": [1, 2, 3]}}|])
       rT ← callDuktape (fromJust ctx) Nothing "throwsErr" []
