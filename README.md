@@ -1,4 +1,9 @@
-# hs-duktape [![Hackage](https://img.shields.io/hackage/v/hs-duktape.svg?style=flat)](https://hackage.haskell.org/package/hs-duktape) [![Build Status](https://img.shields.io/travis/myfreeweb/hs-duktape.svg?style=flat)](https://travis-ci.org/myfreeweb/hs-duktape) [![MIT License](https://img.shields.io/badge/mit-license-green.svg?style=flat)](https://tldrlegal.com/license/mit-license)
+[![Hackage](https://img.shields.io/hackage/v/hs-duktape.svg?style=flat)](https://hackage.haskell.org/package/hs-duktape)
+[![Linux Build Status](https://img.shields.io/travis/myfreeweb/hs-duktape.svg?style=flat)](https://travis-ci.org/myfreeweb/hs-duktape)
+[![Windows Build Status](https://img.shields.io/appveyor/ci/myfreeweb/hs-duktape.svg?style=flat)](https://ci.appveyor.com/project/myfreeweb/hs-duktape)
+[![MIT License](https://img.shields.io/badge/mit-license-green.svg?style=flat)](https://tldrlegal.com/license/mit-license)
+
+# hs-duktape
 
 Haskell bindings for [duktape], a very compact embedded ECMAScript (JavaScript) engine.
 
@@ -80,5 +85,5 @@ By participating in this project you agree to follow the [Contributor Code of Co
 ## License
 
 Licensed under the MIT license (see to the `LICENSE` file).  
-Haskell bindings: Copyright (c) 2015-2016 Greg V <greg@unrelenting.technology>  
+Haskell bindings: Copyright (c) 2015-2017 Greg V <greg@unrelenting.technology>  
 Duktape: Copyright (c) 2013-2016 by Duktape authors (see duktape/AUTHORS.rst)
