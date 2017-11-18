@@ -16,7 +16,7 @@ extra-source-files:
     duktape/src/duktape.h
     duktape/src/duk_config.h
 tested-with:
-    GHC == 8.0.2
+    GHC == 8.2.1
 
 source-repository head
     type: git
