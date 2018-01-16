@@ -20,6 +20,9 @@ foreign import capi "duktape.h value DUK_TYPE_BUFFER"    c_DUK_TYPE_BUFFER ∷ C
 foreign import capi "duktape.h value DUK_TYPE_POINTER"   c_DUK_TYPE_POINTER ∷ CInt
 foreign import capi "duktape.h value DUK_TYPE_LIGHTFUNC" c_DUK_TYPE_LIGHTFUNC ∷ CInt
 
+-- Duktape return vals
+foreign import capi "duktape.h value DUK_RET_TYPE_ERROR" c_DUK_RET_TYPE_ERROR ∷ CInt
+
 data DuktapeHeap
 
 type DuktapeCtx = MVar (ForeignPtr DuktapeHeap)
