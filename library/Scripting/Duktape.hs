@@ -30,6 +30,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HMS
 import           Data.Aeson
+import           Data.Aeson.Types
 import           Data.Maybe (fromMaybe)
 import           Scripting.Duktape.Raw
 
@@ -138,56 +139,24 @@ callDuktape ctx oname fname args =
          else pop ctxPtr $ Left $ "Nonexistent property of global object: " ++ show (fromMaybe "" oname)
 
 class Duktapeable ξ where
-  runInDuktape ∷ ξ → Ptr DuktapeHeap → IO CInt
+  runInDuktape ∷ Int → ξ → Ptr DuktapeHeap → IO CInt
   argCount ∷ ξ → Int
 
 instance Duktapeable (IO ()) where
-  runInDuktape f _ = f >> return 0
+  runInDuktape _ f _ = f >> return 0
   argCount _ = 0
 
-instance Duktapeable (IO Value) where
+instance (ToJSON v) => Duktapeable (IO v) where
+  runInDuktape _ f ctxPtr = f >>= pushValue ctxPtr . toJSON >> return 1
   argCount _ = 0
-  runInDuktape f ctxPtr = f >>= pushValue ctxPtr >> return 1
 
-instance Duktapeable (Value → IO Value) where
-  argCount _ = 1
-  runInDuktape f ctxPtr = do
-    a0 ← getValueFromStack ctxPtr 0
-    f (fromMaybe Null a0) >>= pushValue ctxPtr >> return 1
-
-instance Duktapeable (Value → Value → IO Value) where
-  argCount _ = 2
-  runInDuktape f ctxPtr = do
-    a0 ← getValueFromStack ctxPtr 0
-    a1 ← getValueFromStack ctxPtr 1
-    f (fromMaybe Null a0) (fromMaybe Null a1) >>= pushValue ctxPtr >> return 1
-
-instance Duktapeable (Value → Value → Value → IO Value) where
-  argCount _ = 3
-  runInDuktape f ctxPtr = do
-    a0 ← getValueFromStack ctxPtr 0
-    a1 ← getValueFromStack ctxPtr 1
-    a2 ← getValueFromStack ctxPtr 2
-    f (fromMaybe Null a0) (fromMaybe Null a1) (fromMaybe Null a2) >>= pushValue ctxPtr >> return 1
-
-instance Duktapeable (Value → Value → Value → Value → IO Value) where
-  argCount _ = 4
-  runInDuktape f ctxPtr = do
-    a0 ← getValueFromStack ctxPtr 0
-    a1 ← getValueFromStack ctxPtr 1
-    a2 ← getValueFromStack ctxPtr 2
-    a3 ← getValueFromStack ctxPtr 3
-    f (fromMaybe Null a0) (fromMaybe Null a1) (fromMaybe Null a2) (fromMaybe Null a3) >>= pushValue ctxPtr >> return 1
-
-instance Duktapeable (Value → Value → Value → Value → Value → IO Value) where
-  argCount _ = 5
-  runInDuktape f ctxPtr = do
-    a0 ← getValueFromStack ctxPtr 0
-    a1 ← getValueFromStack ctxPtr 1
-    a2 ← getValueFromStack ctxPtr 2
-    a3 ← getValueFromStack ctxPtr 3
-    a4 ← getValueFromStack ctxPtr 4
-    f (fromMaybe Null a0) (fromMaybe Null a1) (fromMaybe Null a2) (fromMaybe Null a3) (fromMaybe Null a4) >>= pushValue ctxPtr >> return 1
+instance (Duktapeable ξ, FromJSON v) => Duktapeable (v -> ξ) where
+  argCount f = 1 + argCount (f undefined)
+  runInDuktape stackIdx f ctxPtr = do
+    stackVal <- fromMaybe Null <$> getValueFromStack ctxPtr stackIdx
+    case parseEither parseJSON stackVal of
+      Left err -> pushValue ctxPtr (toJSON err) >> return c_DUK_RET_TYPE_ERROR
+      Right val -> runInDuktape (stackIdx + 1) (f val) ctxPtr
 
 -- | Makes a Haskell function available in ECMAScript.
 exposeFnDuktape ∷ (MonadIO μ, Duktapeable ξ)
@@ -202,7 +171,7 @@ exposeFnDuktape ctx oname fname f =
       oVal ← pushObjectOrGlobal ctxPtr oname
       if oVal
          then do
-           wrapped ← c_wrapper $ runInDuktape f
+           wrapped ← c_wrapper $ runInDuktape 0 f
            void $ c_duk_push_c_function ctxPtr wrapped $ fromIntegral $ argCount f
            void $ c_duk_put_prop_string ctxPtr (-2) fnameCstr
            pop ctxPtr $ Right ()

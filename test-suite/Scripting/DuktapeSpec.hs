@@ -81,14 +81,17 @@ function objTest (obj) { return obj.name + obj.stuff.filter(function (x) { retur
     it "exposes Haskell functions to ECMAScript" $ do
       ctx ← createDuktapeCtx
       _ ← evalDuktape (fromJust ctx) "var X = {}"
-      let dbl (Number x) = return $ Number $ x * 2 ∷ IO Value
-          dbl _ = return $ String "wtf"
-          cnst = return $ Number 123 ∷ IO Value
+      let dbl x = return $ Number $ x * 2 ∷ IO Value
+          add x y = return $ x + y ∷ IO Integer
+          cnst = return $ 123 ∷ IO Integer
       _ ← exposeFnDuktape (fromJust ctx) Nothing "double" dbl
       _ ← exposeFnDuktape (fromJust ctx) (Just "X") "cnst" cnst
-      rd ← evalDuktape (fromJust ctx) "double(7) + X.cnst()"
-      rd `shouldBe` (Right $ Just $ Number 137)
+      _ ← exposeFnDuktape (fromJust ctx) (Just "X") "add" add
+      rd ← evalDuktape (fromJust ctx) "double(7) + X.cnst() + X.add(3,5)"
+      rd `shouldBe` (Right $ Just $ Number 145)
       rD ← callDuktape (fromJust ctx) Nothing "double" [Number 7]
       rD `shouldBe` (Right $ Just $ Number 14)
       rE ← callDuktape (fromJust ctx) Nothing "double" []
-      rE `shouldBe` (Right $ Just $ String "wtf")
+      rE `shouldBe` (Left "TypeError: error (rc -6)")
+      rF ← evalDuktape (fromJust ctx) "try { X.add(undefined, \"wtf\") } catch (e) { 0; }"
+      rF `shouldBe` (Right $ Just $ Number 0)
