@@ -56,8 +56,8 @@ let dbl (Number x) = return $ Number $ x * 2 ∷ IO Value
 reD ← exposeFnDuktape (fromJust ctx) Nothing "double" dbl 
 ```
 
-The functions must be of type `IO ()`, `IO Value`, `Value -> IO Value`, `Value -> Value -> IO Value`... and so on, up to 5 arguments.
-If you need more, use an `Object` `Value`, seriously.
+The functions must be of type `IO ()`, `IO Value`, `Value -> IO Value`, `Value -> Value -> IO Value`... and so on.
+(Or with any `ToJSON`/`FromJSON` values instead of `Value`)
 
 [Aeson]: https://hackage.haskell.org/package/aeson
 [lens-aeson]: https://hackage.haskell.org/package/lens-aeson
@@ -85,5 +85,5 @@ By participating in this project you agree to follow the [Contributor Code of Co
 ## License
 
 Licensed under the MIT license (see to the `LICENSE` file).  
-Haskell bindings: Copyright (c) 2015-2017 Greg V <greg@unrelenting.technology>  
+Haskell bindings: Copyright (c) 2015-2018 Greg V <greg@unrelenting.technology>  
 Duktape: Copyright (c) 2013-2016 by Duktape authors (see duktape/AUTHORS.rst)
