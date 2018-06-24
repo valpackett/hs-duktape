@@ -15,10 +15,11 @@ module Scripting.Duktape (
 ) where
 
 import           Foreign.Ptr
-import           Foreign.ForeignPtr
+import           Foreign.ForeignPtr hiding (addForeignPtrFinalizer)
 import           Foreign.Storable
 import           Foreign.C.String
 import           Foreign.C.Types
+import           Foreign.Concurrent (addForeignPtrFinalizer)
 import           Foreign.Marshal.Alloc
 import           Control.Monad.IO.Class
 import           Control.Concurrent.MVar (withMVar)
@@ -166,12 +167,13 @@ exposeFnDuktape ∷ (MonadIO μ, Duktapeable ξ)
                 → ξ -- ^ The function itself
                 → μ (Either String ())
 exposeFnDuktape ctx oname fname f =
-  liftIO $ withCtx ctx $ \ctxPtr →
+  liftIO $ withMVar ctx $ \fPtr → withForeignPtr fPtr $ \ctxPtr →
     BS.useAsCString fname $ \fnameCstr → do
       oVal ← pushObjectOrGlobal ctxPtr oname
       if oVal
          then do
            wrapped ← c_wrapper $ runInDuktape 0 f
+           addForeignPtrFinalizer fPtr (freeHaskellFunPtr wrapped)
            void $ c_duk_push_c_function ctxPtr wrapped $ fromIntegral $ argCount f
            void $ c_duk_put_prop_string ctxPtr (-2) fnameCstr
            pop ctxPtr $ Right ()
