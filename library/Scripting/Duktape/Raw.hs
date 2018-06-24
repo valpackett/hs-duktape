@@ -6,7 +6,8 @@ module Scripting.Duktape.Raw where
 import           Foreign.C.Types
 import           Foreign.C.String
 import           Foreign.Ptr
-import           Foreign.ForeignPtr
+import           Foreign.ForeignPtr hiding (newForeignPtr)
+import           Foreign.Concurrent (newForeignPtr)
 import           Control.Concurrent.MVar (newMVar, MVar)
 
 foreign import capi "duktape.h value DUK_TYPE_NONE"      c_DUK_TYPE_NONE ∷ CInt
@@ -40,8 +41,8 @@ foreign import ccall safe "wrapper"
 foreign import capi safe "duktape.h duk_create_heap"
   c_duk_create_heap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → Ptr () → FunPtr DukFatalFunction → IO (Ptr DuktapeHeap)
 
-foreign import capi safe "duktape.h &duk_destroy_heap"
-  c_duk_destroy_heap ∷ FunPtr(Ptr DuktapeHeap → IO ())
+foreign import capi safe "duktape.h duk_destroy_heap"
+  c_duk_destroy_heap ∷ Ptr DuktapeHeap → IO ()
 
 -- Evaluation
 
@@ -147,7 +148,7 @@ createHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr 
 createHeap allocf reallocf freef udata fatalf = do
   ptr ← c_duk_create_heap allocf reallocf freef udata fatalf
   if ptr /= nullPtr
-     then newForeignPtr c_duk_destroy_heap ptr >>= newMVar >>= return . Just
+     then newForeignPtr ptr (c_duk_destroy_heap ptr) >>= newMVar >>= return . Just
      else return Nothing
 
 createHeapF ∷ FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
