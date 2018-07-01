@@ -6,3 +6,4 @@ tmp/
 *.tix
 .stack-work
 *_stub.h
+dukconfig/dist
