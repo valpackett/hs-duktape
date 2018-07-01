@@ -12,9 +12,9 @@ build-type:      Simple
 cabal-version:   >= 1.10
 extra-source-files:
     README.md
-    duktape/src/duktape.c
-    duktape/src/duktape.h
-    duktape/src/duk_config.h
+    dukconfig/dist/duktape.c
+    dukconfig/dist/duktape.h
+    dukconfig/dist/duk_config.h
 tested-with:
     GHC == 8.2.1
 
@@ -37,8 +37,8 @@ library
         Scripting.Duktape.Raw
     ghc-options: -Wall
     hs-source-dirs: library
-    include-dirs: duktape/src
-    c-sources: duktape/src/duktape.c
+    include-dirs: dukconfig/dist
+    c-sources: dukconfig/dist/duktape.c
     includes: duktape.h
     install-includes: duktape.h
     cc-options: -Wall -Wno-discarded-qualifiers -std=c99 -fstrict-aliasing -fomit-frame-pointer

@@ -1,0 +1,5 @@
+DUK_USE_INTERRUPT_COUNTER: true
+DUK_USE_EXEC_TIMEOUT_CHECK:
+  verbatim: |
+    extern duk_bool_t hsduk_exec_timeout_check(void *udata);
+    #define DUK_USE_EXEC_TIMEOUT_CHECK(udata) hsduk_exec_timeout_check(udata)

@@ -10,6 +10,7 @@ import           Foreign.ForeignPtr hiding (newForeignPtr)
 import           Foreign.Concurrent (newForeignPtr)
 import           Control.Concurrent.MVar (newMVar, MVar)
 
+
 foreign import capi "duktape.h value DUK_TYPE_NONE"      c_DUK_TYPE_NONE ∷ CInt
 foreign import capi "duktape.h value DUK_TYPE_UNDEFINED" c_DUK_TYPE_UNDEFINED ∷ CInt
 foreign import capi "duktape.h value DUK_TYPE_NULL"      c_DUK_TYPE_NULL ∷ CInt
@@ -32,6 +33,14 @@ type DukAllocFunction = Ptr () → CSize → IO (Ptr ())
 type DukReallocFunction = Ptr () → Ptr () → CSize → IO (Ptr ())
 type DukFreeFunction = Ptr () → Ptr () → IO ()
 type DukFatalFunction = Ptr DuktapeHeap → CInt → CString → IO ()
+
+type DukExecTimeoutCheckFunction = Ptr () → IO (CUInt)
+foreign export ccall "hsduk_exec_timeout_check" execTimeoutCheck :: DukExecTimeoutCheckFunction
+
+execTimeoutCheck :: DukExecTimeoutCheckFunction
+execTimeoutCheck v = v `seq` do
+  putStrLn "check called"
+  return 0
 
 foreign import ccall safe "wrapper"
   c_wrapper ∷ (Ptr DuktapeHeap → IO CInt) → IO (FunPtr (Ptr DuktapeHeap → IO CInt))
