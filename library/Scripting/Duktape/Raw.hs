@@ -3,12 +3,13 @@
 
 module Scripting.Duktape.Raw where
 
+import           Foreign(peek, poke, malloc, free)
 import           Foreign.C.Types
 import           Foreign.C.String
 import           Foreign.Ptr
-import           Foreign.ForeignPtr hiding (newForeignPtr)
-import           Foreign.Concurrent (newForeignPtr)
-import           Control.Concurrent.MVar (newMVar, MVar)
+import           Foreign.ForeignPtr hiding (newForeignPtr, addForeignPtrFinalizer)
+import           Foreign.Concurrent (newForeignPtr, addForeignPtrFinalizer)
+import           Control.Concurrent.MVar (withMVar, newMVar, MVar)
 
 
 foreign import capi "duktape.h value DUK_TYPE_NONE"      c_DUK_TYPE_NONE ∷ CInt
@@ -35,15 +36,32 @@ type DukFreeFunction = Ptr () → Ptr () → IO ()
 type DukFatalFunction = Ptr DuktapeHeap → CInt → CString → IO ()
 
 type DukExecTimeoutCheckFunction = Ptr () → IO (CUInt)
+type TimeoutCheckAction = FunPtr (IO Bool)
+type CheckActionUData =  Ptr TimeoutCheckAction
+
+-- Static callback
 foreign export ccall "hsduk_exec_timeout_check" execTimeoutCheck :: DukExecTimeoutCheckFunction
 
 execTimeoutCheck :: DukExecTimeoutCheckFunction
-execTimeoutCheck v = v `seq` do
-  putStrLn "check called"
-  return 0
+execTimeoutCheck udata = if udata == nullPtr then return 0 else invoke
+  where
+    checkAction :: CheckActionUData
+    checkAction = castPtr udata
+    invoke = do
+      action <- peek checkAction
+      result <- unwrapTimeoutCheck action
+      return $ if result then 1 else 0
+
+-- FunPtr wrappers / unwrappers
 
 foreign import ccall safe "wrapper"
   c_wrapper ∷ (Ptr DuktapeHeap → IO CInt) → IO (FunPtr (Ptr DuktapeHeap → IO CInt))
+
+foreign import ccall "dynamic"
+  unwrapTimeoutCheck :: TimeoutCheckAction -> IO Bool
+
+foreign import ccall safe "wrapper"
+  wrapTimeoutCheck :: (IO Bool) -> IO TimeoutCheckAction
 
 -- Heap lifecycle
 
@@ -162,3 +180,24 @@ createHeap allocf reallocf freef udata fatalf = do
 
 createHeapF ∷ FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
 createHeapF = createHeap nullFunPtr nullFunPtr nullFunPtr nullPtr
+
+-- | A TimeoutCheck is an IO action that returns True when the current script evaluation
+-- should timeout (interpreter throws RangeError). It is wrapped to pass as void* udata in
+-- `createHeap` and will be provided to `execTimeoutCheck` when the interpreter invokes it.
+createGovernedHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → IO Bool → FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
+createGovernedHeap allocf reallocf freef timeoutCheck fatalf = do
+  (udata, release) <- wrapTimeoutCheckUData timeoutCheck
+  mctx <- createHeap allocf reallocf freef udata fatalf
+  case mctx of
+    Just ctx -> withMVar ctx $ \ fptr -> do
+      addForeignPtrFinalizer fptr release
+      return mctx
+    Nothing -> return Nothing
+
+wrapTimeoutCheckUData :: IO Bool -> IO (Ptr (), IO ())
+wrapTimeoutCheckUData check = do
+  wrapped <- wrapTimeoutCheck check
+  ptr <- malloc
+  poke ptr wrapped
+  let finalizers = free ptr >> freeHaskellFunPtr wrapped
+  return (castPtr ptr, finalizers)
