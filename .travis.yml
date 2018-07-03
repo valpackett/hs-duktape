@@ -1,7 +1,7 @@
 sudo: false
 language: c
 
-addons: {apt: {packages: [ghc-7.10.3], sources: [hvr-ghc]}}
+addons: {apt: {packages: [ghc-7.10.3 python], sources: [hvr-ghc]}}
 
 cache:
   directories:
@@ -12,6 +12,8 @@ before_install:
   - mkdir -p ~/.local/bin
   - export PATH=~/.local/bin:$PATH
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - pip install PyYAML
+  - dukconfig/build_dist.sh
   - stack --no-terminal --skip-ghc-check setup
 
 script:
