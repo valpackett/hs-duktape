@@ -101,16 +101,16 @@ function objTest (obj) { return obj.name + obj.stuff.filter(function (x) { retur
 
   describe "createGovernedHeap" $ do
     it "applies CheckTimeout to signal the runtime to terminate with RangeError" $ do
-      guvnor <- allowQuarterSecond
-      ctx <- createGovernedHeap nullFunPtr nullFunPtr nullFunPtr guvnor nullFunPtr
+      guvnor ← allowQuarterSecond
+      ctx ← createGovernedHeap nullFunPtr nullFunPtr nullFunPtr guvnor nullFunPtr
       rE ← evalDuktape (fromJust ctx) "while(true) {};"
       rE `shouldBe` Left "RangeError: execution timeout"
 
 
-allowQuarterSecond :: IO (IO Bool)
+allowQuarterSecond ∷ IO (IO Bool)
 allowQuarterSecond = do
-  initializedAt <- getCurrentTime
+  initializedAt ← getCurrentTime
   return $ do
-    now <- getCurrentTime
+    now ← getCurrentTime
     let diff = diffUTCTime now initializedAt
     return $ diff > 0.25

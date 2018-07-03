@@ -41,18 +41,18 @@ type TimeoutCheckWrapped = FunPtr (IO Bool)
 type CheckActionUData =  Ptr TimeoutCheckWrapped
 
 -- Static callback
-foreign export ccall "hsduk_exec_timeout_check" execTimeoutCheck :: DukExecTimeoutCheckFunction
+foreign export ccall "hsduk_exec_timeout_check" execTimeoutCheck ∷ DukExecTimeoutCheckFunction
 
 -- | Will always be invoked regularly by duktape runtime but returns false (do not timeout)
 -- unless it receives a TimeoutCheck through udata
-execTimeoutCheck :: DukExecTimeoutCheckFunction
+execTimeoutCheck ∷ DukExecTimeoutCheckFunction
 execTimeoutCheck udata = if udata == nullPtr then return 0 else invoke
   where
-    checkAction :: CheckActionUData
+    checkAction ∷ CheckActionUData
     checkAction = castPtr udata
     invoke = do
-      action <- peek checkAction
-      result <- unwrapTimeoutCheck action
+      action ← peek checkAction
+      result ← unwrapTimeoutCheck action
       return $ if result then 1 else 0
 
 -- FunPtr wrappers / unwrappers
@@ -61,10 +61,10 @@ foreign import ccall safe "wrapper"
   c_wrapper ∷ (Ptr DuktapeHeap → IO CInt) → IO (FunPtr (Ptr DuktapeHeap → IO CInt))
 
 foreign import ccall "dynamic"
-  unwrapTimeoutCheck :: TimeoutCheckWrapped -> IO Bool
+  unwrapTimeoutCheck ∷ TimeoutCheckWrapped → IO Bool
 
 foreign import ccall safe "wrapper"
-  wrapTimeoutCheck :: (IO Bool) -> IO TimeoutCheckWrapped
+  wrapTimeoutCheck ∷ (IO Bool) → IO TimeoutCheckWrapped
 
 -- Heap lifecycle
 
@@ -188,20 +188,20 @@ createHeapF = createHeap nullFunPtr nullFunPtr nullFunPtr nullPtr
 -- should timeout (interpreter throws RangeError).
 createGovernedHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → TimeoutCheck → FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
 createGovernedHeap allocf reallocf freef timeoutCheck fatalf = do
-  (udata, release) <- wrapTimeoutCheckUData timeoutCheck
-  mctx <- createHeap allocf reallocf freef udata fatalf
+  (udata, release) ← wrapTimeoutCheckUData timeoutCheck
+  mctx ← createHeap allocf reallocf freef udata fatalf
   case mctx of
-    Just ctx -> withMVar ctx $ \ fptr -> do
+    Just ctx → withMVar ctx $ \fptr → do
       addForeignPtrFinalizer fptr release
       return mctx
-    Nothing -> return Nothing
+    Nothing → return Nothing
   where
   -- TimeoutCheck is wrapped to pass as void* udata in `createHeap` and will be provided (by duktape)
   -- back to `execTimeoutCheck` when the interpreter invokes that callback.
-  wrapTimeoutCheckUData :: TimeoutCheck -> IO (Ptr (), IO ())
+  wrapTimeoutCheckUData ∷ TimeoutCheck → IO (Ptr (), IO ())
   wrapTimeoutCheckUData check = do
-    wrapped <- wrapTimeoutCheck check
-    ptr <- malloc
+    wrapped ← wrapTimeoutCheck check
+    ptr ← malloc
     poke ptr wrapped
     let finalizers = free ptr >> freeHaskellFunPtr wrapped
     return (castPtr ptr, finalizers)
