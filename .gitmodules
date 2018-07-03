@@ -1,3 +1,4 @@
 [submodule "duktape"]
 	path = duktape
 	url = https://github.com/svaarala/duktape-releases.git
+	ignore=dirty
