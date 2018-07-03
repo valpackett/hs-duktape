@@ -7,7 +7,10 @@ import           Test.Hspec.Expectations.Pretty (shouldBe)
 import           TestCommon
 import           Data.Maybe
 import           Data.Aeson hiding (json)
+import           Data.Time.Clock
 import           Scripting.Duktape
+import           Scripting.Duktape.Raw (createGovernedHeap)
+import           Foreign (nullFunPtr)
 
 spec ∷ Spec
 spec = do
@@ -95,3 +98,19 @@ function objTest (obj) { return obj.name + obj.stuff.filter(function (x) { retur
       rE `shouldBe` (Left "TypeError: error (rc -6)")
       rF ← evalDuktape (fromJust ctx) "try { X.add(undefined, \"wtf\") } catch (e) { 0; }"
       rF `shouldBe` (Right $ Just $ Number 0)
+
+  describe "createGovernedHeap" $ do
+    it "applies CheckTimeout to signal the runtime to terminate with RangeError" $ do
+      guvnor <- allowQuarterSecond
+      ctx <- createGovernedHeap nullFunPtr nullFunPtr nullFunPtr guvnor nullFunPtr
+      rE ← evalDuktape (fromJust ctx) "while(true) {};"
+      rE `shouldBe` Left "RangeError: execution timeout"
+
+
+allowQuarterSecond :: IO (IO Bool)
+allowQuarterSecond = do
+  initializedAt <- getCurrentTime
+  return $ do
+    now <- getCurrentTime
+    let diff = diffUTCTime now initializedAt
+    return $ diff > 0.25
