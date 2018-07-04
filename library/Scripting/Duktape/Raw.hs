@@ -40,6 +40,8 @@ type TimeoutCheck = IO Bool
 type TimeoutCheckWrapped = FunPtr (IO Bool)
 type CheckActionUData =  Ptr TimeoutCheckWrapped
 
+newtype InternalUData = InternalUData { getInternalUData :: Ptr () }
+
 -- Static callback
 foreign export ccall "hsduk_exec_timeout_check" execTimeoutCheck ∷ DukExecTimeoutCheckFunction
 
@@ -174,15 +176,15 @@ foreign import capi safe "duktape.h duk_push_context_dump"
 
 -------------------------------------------------------------------------------------------------------
 
-createHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → Ptr () → FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
+createHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → InternalUData → FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
 createHeap allocf reallocf freef udata fatalf = do
-  ptr ← c_duk_create_heap allocf reallocf freef udata fatalf
+  ptr ← c_duk_create_heap allocf reallocf freef (getInternalUData udata) fatalf
   if ptr /= nullPtr
      then newForeignPtr ptr (c_duk_destroy_heap ptr) >>= newMVar >>= return . Just
      else return Nothing
 
 createHeapF ∷ FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
-createHeapF = createHeap nullFunPtr nullFunPtr nullFunPtr nullPtr
+createHeapF = createHeap nullFunPtr nullFunPtr nullFunPtr (InternalUData nullPtr)
 
 -- | A TimeoutCheck is an IO action that returns True when the current script evaluation
 -- should timeout (interpreter throws RangeError).
@@ -198,10 +200,10 @@ createGovernedHeap allocf reallocf freef timeoutCheck fatalf = do
   where
   -- TimeoutCheck is wrapped to pass as void* udata in `createHeap` and will be provided (by duktape)
   -- back to `execTimeoutCheck` when the interpreter invokes that callback.
-  wrapTimeoutCheckUData ∷ TimeoutCheck → IO (Ptr (), IO ())
+  wrapTimeoutCheckUData ∷ TimeoutCheck → IO (InternalUData, IO ())
   wrapTimeoutCheckUData check = do
     wrapped ← wrapTimeoutCheck check
     ptr ← malloc
     poke ptr wrapped
     let finalizers = free ptr >> freeHaskellFunPtr wrapped
-    return (castPtr ptr, finalizers)
+    return (InternalUData $ castPtr ptr, finalizers)
