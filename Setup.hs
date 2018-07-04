@@ -3,7 +3,6 @@
 
 import           Data.List                          (isPrefixOf)
 import           Distribution.Simple
--- import           Distribution.Simple.Setup          (BuildFlags (..), Flag (..))
 import           Distribution.Types.HookedBuildInfo
 import           System.Directory
 import           System.Exit                        (ExitCode (..))
