@@ -64,15 +64,9 @@ The functions must be of type `IO ()`, `IO Value`, `Value -> IO Value`, `Value -
 
 ## Development
 
-Building from the repository requires initialization with the Duktape configuration script the first time (these files are included in the cabal distribution on Hackage). 
+Note: The duktape configure script invoked by Cabal/Stack requires python 2 with the PyYAML library installed. `pip install PyYAML` is one way to achieve this.
 
-The duktape configure script requires python with the PyYAML library installed.
-
-```bash
-git clone --recurse-submodules https://github.com/myfreeweb/hs-duktape
-dukconfig/build_dist.sh
-```
-Thereafter use [stack] to build.
+Use [stack] to build.
 
 ```bash
 $ stack build
