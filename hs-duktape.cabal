@@ -8,7 +8,7 @@ copyright:       2015-2017 Greg V <greg@unrelenting.technology> / 2013-2017 Dukt
 maintainer:      greg@unrelenting.technology
 license:         MIT
 license-file:    LICENSE
-build-type:      Simple
+build-type:      Custom
 cabal-version:   >= 1.10
 extra-source-files:
     README.md
@@ -21,6 +21,13 @@ tested-with:
 source-repository head
     type: git
     location: git://github.com/myfreeweb/hs-duktape.git
+
+custom-setup
+    setup-depends:
+        base
+      , Cabal
+      , directory
+      , process
 
 library
     build-depends:

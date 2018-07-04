@@ -11,7 +11,6 @@ before_test:
 - curl -sS -ostack.zip -L --insecure http://www.stackage.org/stack/windows-i386
 - 7z x stack.zip stack.exe
 - pip install PyYAML
-- bash dukconfig/build_dist.sh
 
 clone_folder: "c:\\stack"
 environment:
