@@ -1,4 +1,4 @@
 flags: {}
 packages:
   - '.'
-resolver: nightly-2017-11-17
+resolver: nightly-2018-07-05

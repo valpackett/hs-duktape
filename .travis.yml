@@ -1,7 +1,7 @@
 sudo: false
 language: c
 
-addons: {apt: {packages: [ghc-7.10.3], sources: [hvr-ghc]}}
+addons: {apt: {packages: [ghc-8.2.2], sources: [hvr-ghc]}}
 
 cache:
   directories:
