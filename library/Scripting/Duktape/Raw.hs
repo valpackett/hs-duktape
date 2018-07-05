@@ -176,6 +176,9 @@ foreign import capi safe "duktape.h duk_push_context_dump"
 
 -------------------------------------------------------------------------------------------------------
 
+nullUData :: InternalUData
+nullUData = InternalUData nullPtr
+
 createHeap ∷ FunPtr DukAllocFunction → FunPtr DukReallocFunction → FunPtr DukFreeFunction → InternalUData → FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
 createHeap allocf reallocf freef udata fatalf = do
   ptr ← c_duk_create_heap allocf reallocf freef (getInternalUData udata) fatalf
@@ -184,7 +187,7 @@ createHeap allocf reallocf freef udata fatalf = do
      else return Nothing
 
 createHeapF ∷ FunPtr DukFatalFunction → IO (Maybe DuktapeCtx)
-createHeapF = createHeap nullFunPtr nullFunPtr nullFunPtr (InternalUData nullPtr)
+createHeapF = createHeap nullFunPtr nullFunPtr nullFunPtr nullUData
 
 -- | A TimeoutCheck is an IO action that returns True when the current script evaluation
 -- should timeout (interpreter throws RangeError).
