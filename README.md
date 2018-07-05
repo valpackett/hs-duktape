@@ -59,6 +59,26 @@ reD <- exposeFnDuktape (fromJust ctx) Nothing "double" dbl
 The functions must be of type `IO ()`, `IO Value`, `Value -> IO Value`, `Value -> Value -> IO Value`... and so on.
 (Or with any `ToJSON`/`FromJSON` values instead of `Value`)
 
+### Advanced: Script execution timeout
+
+Instead of `createDuktapeCtx`, you can use `createGovernedHeap` to enforce termination via a timeout:
+
+```haskell
+allowQuarterSecond :: IO (IO Bool)
+allowQuarterSecond = do
+  initializedAt <- getCurrentTime
+  return $ do
+    now <- getCurrentTime
+    let diff = diffUTCTime now initializedAt
+    return $ diff > 0.25
+
+
+guvnor <- allowQuarterSecond
+ctx <- createGovernedHeap nullFunPtr nullFunPtr nullFunPtr guvnor nullFunPtr
+result <- evalDuktape (fromJust ctx) "while (true) {}"
+-- Left "RangeError: execution timeout"
+```
+
 [Aeson]: https://hackage.haskell.org/package/aeson
 [lens-aeson]: https://hackage.haskell.org/package/lens-aeson
 
