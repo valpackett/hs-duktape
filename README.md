@@ -51,9 +51,9 @@ And expose Haskell functions (same as with calls: set on global or a property of
 
 ```haskell
 dukm <- createDuktapeCtx
-let dbl (Number x) = return $ Number $ x * 2 ∷ IO Value
+let dbl (Number x) = return $ Number $ x * 2 :: IO Value
     dbl _ = return $ String "wtf"
-reD ← exposeFnDuktape (fromJust ctx) Nothing "double" dbl 
+reD <- exposeFnDuktape (fromJust ctx) Nothing "double" dbl 
 ```
 
 The functions must be of type `IO ()`, `IO Value`, `Value -> IO Value`, `Value -> Value -> IO Value`... and so on.
@@ -80,7 +80,7 @@ $ stack test && rm tests.tix
 
 Please feel free to submit pull requests!
 
-By participating in this project you agree to follow the [Contributor Code of Conduct](http://contributor-covenant.org/version/1/4/).
+By participating in this project you agree to follow the [Contributor Code of Conduct](https://contributor-covenant.org/version/1/4/).
 
 [The list of contributors is available on GitHub](https://github.com/myfreeweb/hs-duktape/graphs/contributors).
 
